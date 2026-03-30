@@ -1,0 +1,91 @@
+{
+  "job_id": "assets-test-medical-report-sample-nigeria_image.png",
+  "document_type": "image",
+  "status": "review_required",
+  "entities": [
+    {
+      "type": "CA_HEALTH_NUMBER",
+      "confidence": 0.7414747476577759,
+      "start": 6,
+      "end": 17,
+      "page": null,
+      "source": "comprehend_pii+comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.9945886135101318,
+      "start": 65,
+      "end": 73,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "DATE_TIME",
+      "confidence": 0.9998518824577332,
+      "start": 89,
+      "end": 99,
+      "page": null,
+      "source": "comprehend_pii+comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "ID",
+      "confidence": 0.9991699457168579,
+      "start": 113,
+      "end": 121,
+      "page": null,
+      "source": "comprehend_medical+comprehend_pii",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.981648325920105,
+      "start": 169,
+      "end": 177,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.8584782481193542,
+      "start": 191,
+      "end": 199,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.6658151149749756,
+      "start": 660,
+      "end": 663,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    }
+  ],
+  "processing_timestamp": "2026-03-30T20:26:50.032950Z",
+  "audit": {
+    "submitter_id": null,
+    "submitted_at": null,
+    "processing_started_at": "2026-03-30T20:26:49.939854Z",
+    "processing_completed_at": "2026-03-30T20:26:49.939854Z",
+    "detector_versions": {
+      "custom_rules": "1.0.0",
+      "comprehend": "enabled"
+    },
+    "rule_pack_version": null,
+    "human_review_required": true,
+    "human_review_completed": false
+  }
+}

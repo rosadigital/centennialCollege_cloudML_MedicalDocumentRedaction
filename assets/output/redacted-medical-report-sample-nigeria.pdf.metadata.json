@@ -1,0 +1,131 @@
+{
+  "job_id": "assets-test-medical-report-sample-nigeria.pdf",
+  "document_type": "pdf",
+  "status": "review_required",
+  "entities": [
+    {
+      "type": "NAME",
+      "confidence": 0.11993438005447388,
+      "start": 6,
+      "end": 17,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.9943733215332031,
+      "start": 65,
+      "end": 73,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "DATE_TIME",
+      "confidence": 0.9999438524246216,
+      "start": 89,
+      "end": 99,
+      "page": null,
+      "source": "comprehend_pii+comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "ID",
+      "confidence": 0.9991791844367981,
+      "start": 113,
+      "end": 121,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.9814029932022095,
+      "start": 169,
+      "end": 177,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.8550870418548584,
+      "start": 191,
+      "end": 199,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.9857223033905029,
+      "start": 660,
+      "end": 663,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "DATE",
+      "confidence": 0.9997119307518005,
+      "start": 716,
+      "end": 756,
+      "page": null,
+      "source": "comprehend_pii+comprehend_medical+comprehend_medical+comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "NAME",
+      "confidence": 0.9992777705192566,
+      "start": 773,
+      "end": 783,
+      "page": null,
+      "source": "comprehend_medical",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "ID",
+      "confidence": 0.9962911605834961,
+      "start": 814,
+      "end": 823,
+      "page": null,
+      "source": "comprehend_medical+custom_rules",
+      "bounding_box": null,
+      "original_text_masked": null
+    },
+    {
+      "type": "URL",
+      "confidence": 0.9810691475868225,
+      "start": 862,
+      "end": 876,
+      "page": null,
+      "source": "comprehend_pii",
+      "bounding_box": null,
+      "original_text_masked": null
+    }
+  ],
+  "processing_timestamp": "2026-03-30T20:26:47.870390Z",
+  "audit": {
+    "submitter_id": null,
+    "submitted_at": null,
+    "processing_started_at": "2026-03-30T20:26:47.789325Z",
+    "processing_completed_at": "2026-03-30T20:26:47.789325Z",
+    "detector_versions": {
+      "custom_rules": "1.0.0",
+      "comprehend": "enabled"
+    },
+    "rule_pack_version": null,
+    "human_review_required": true,
+    "human_review_completed": false
+  }
+}
