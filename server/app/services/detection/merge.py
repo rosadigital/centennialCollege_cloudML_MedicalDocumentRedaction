@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models.job import EntityRecord
+from app.models.processing import EntityRecord
 
 
 def _overlaps(a: EntityRecord, b: EntityRecord) -> bool:

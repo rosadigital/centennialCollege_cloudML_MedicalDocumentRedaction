@@ -1,4 +1,4 @@
-from app.models.job import EntityRecord
+from app.models.processing import EntityRecord
 from app.services.detection.merge import dedupe_non_overlapping, merge_entities
 
 

@@ -33,7 +33,7 @@ class TextractExtractor:
             geom = block.get("Geometry", {}).get("BoundingBox", {})
             bbox = None
             if geom:
-                from app.models.job import BoundingBox
+                from app.models.processing import BoundingBox
 
                 bbox = BoundingBox(
                     left=float(geom.get("Left", 0)),

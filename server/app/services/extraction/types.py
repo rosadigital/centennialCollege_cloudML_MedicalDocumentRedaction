@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app.models.job import BoundingBox
+from app.models.processing import BoundingBox
 
 
 class ExtractedBlock(BaseModel):

@@ -1,13 +1,10 @@
-from app.models.job import (
+from app.models.processing import (
     AuditRecord,
     BoundingBox,
     DocumentType,
     EntityRecord,
-    ErrorInfo,
-    JobCreateRequest,
-    JobRecord,
-    JobStatus,
     ProcessingResultMetadata,
+    ProcessingStatus,
 )
 
 __all__ = [
@@ -15,9 +12,6 @@ __all__ = [
     "BoundingBox",
     "DocumentType",
     "EntityRecord",
-    "ErrorInfo",
-    "JobCreateRequest",
-    "JobRecord",
-    "JobStatus",
     "ProcessingResultMetadata",
+    "ProcessingStatus",
 ]

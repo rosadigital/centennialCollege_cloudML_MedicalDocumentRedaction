@@ -1,1 +1,1 @@
-"""Business logic: storage, extraction, detection, redaction, orchestration."""
+"""Business logic: extraction, detection, synchronous orchestration, and redaction."""

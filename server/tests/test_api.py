@@ -16,7 +16,7 @@ def test_sync_process_text() -> None:
         files = {"file": ("note.txt", b"Patient email: x@y.com", "text/plain")}
         data = {"document_type": "text"}
         r = client.post(
-            "/api/v1/jobs/process/sync",
+            "/api/v1/process/sync",
             files=files,
             data=data,
         )

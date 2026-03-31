@@ -5,7 +5,7 @@ from typing import Any
 import boto3
 
 from app.config import Settings
-from app.models.job import BoundingBox
+from app.models.processing import BoundingBox
 from app.services.extraction.types import ExtractedBlock, ExtractionResult
 
 

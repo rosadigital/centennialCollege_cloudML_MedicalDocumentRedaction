@@ -4,11 +4,11 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
-from app.services.job_service import JobService
+from app.services.sync_redaction import SyncRedactionService
 
 
-def get_job_service(request: Request) -> JobService:
-    return cast(JobService, request.app.state.job_service)
+def get_redaction_service(request: Request) -> SyncRedactionService:
+    return cast(SyncRedactionService, request.app.state.redaction_service)
 
 
-JobServiceDep = Annotated[JobService, Depends(get_job_service)]
+RedactionServiceDep = Annotated[SyncRedactionService, Depends(get_redaction_service)]

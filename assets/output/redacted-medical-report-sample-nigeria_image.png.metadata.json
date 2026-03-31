@@ -1,5 +1,5 @@
 {
-  "job_id": "assets-test-medical-report-sample-nigeria_image.png",
+  "request_id": "sync-d99c4635-04ce-413c-b776-8f60ad7a849c",
   "document_type": "image",
   "status": "review_required",
   "entities": [
@@ -74,12 +74,12 @@
       "original_text_masked": null
     }
   ],
-  "processing_timestamp": "2026-03-30T20:26:50.032950Z",
+  "processing_timestamp": "2026-03-31T20:20:31.090462Z",
   "audit": {
     "submitter_id": null,
-    "submitted_at": null,
-    "processing_started_at": "2026-03-30T20:26:49.939854Z",
-    "processing_completed_at": "2026-03-30T20:26:49.939854Z",
+    "submitted_at": "2026-03-31T20:20:31.090602Z",
+    "processing_started_at": "2026-03-31T20:20:31.009625Z",
+    "processing_completed_at": "2026-03-31T20:20:31.009625Z",
     "detector_versions": {
       "custom_rules": "1.0.0",
       "comprehend": "enabled"

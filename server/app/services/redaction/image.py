@@ -4,7 +4,7 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw
 
-from app.models.job import BoundingBox, EntityRecord
+from app.models.processing import BoundingBox, EntityRecord
 from app.services.extraction.types import ExtractionResult
 
 

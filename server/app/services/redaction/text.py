@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models.job import EntityRecord
+from app.models.processing import EntityRecord
 
 
 def redact_text(text: str, entities: list[EntityRecord], token: str) -> str:

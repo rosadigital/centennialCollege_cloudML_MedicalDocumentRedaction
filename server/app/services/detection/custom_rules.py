@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.models.job import EntityRecord
+from app.models.processing import EntityRecord
 
 # Canadian SIN-like pattern (9 digits with optional separators); tune per policy.
 _SIN_PATTERN = re.compile(

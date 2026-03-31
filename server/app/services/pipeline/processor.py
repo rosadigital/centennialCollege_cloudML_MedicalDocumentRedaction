@@ -4,11 +4,11 @@ import json
 from datetime import UTC, datetime
 
 from app.config import Settings
-from app.models.job import (
+from app.models.processing import (
     AuditRecord,
     DocumentType,
-    JobStatus,
     ProcessingResultMetadata,
+    ProcessingStatus,
 )
 from app.services.detection.comprehend import ComprehendDetector
 from app.services.detection.custom_rules import CustomRuleDetector
@@ -33,19 +33,26 @@ class DocumentProcessor:
         document_type: DocumentType,
         raw_bytes: bytes,
         *,
-        job_id: str,
+        request_id: str,
     ) -> tuple[ProcessingResultMetadata, bytes, bytes]:
+        # Step 1: extract a single normalized text view for all downstream detectors.
         extraction = self._extraction.extract(document_type, raw_bytes)
         text = extraction.full_text
+
+        # Step 2: collect local regex hits and optional AWS-managed detections.
         custom_entities = self._custom.detect(text)
         managed_entities = self._comprehend.detect_all(text)
+
+        # Step 3: collapse duplicate/overlapping spans into the final redaction list.
         combined = dedupe_non_overlapping(custom_entities + managed_entities)
         merged = merge_entities(combined)
 
         review = any(
             e.confidence < self._settings.confidence_review_threshold for e in merged
         )
-        status = JobStatus.review_required if review else JobStatus.completed
+        status = (
+            ProcessingStatus.review_required if review else ProcessingStatus.completed
+        )
         token = self._settings.redaction_token
         now = datetime.now(UTC)
         audit = AuditRecord(
@@ -58,6 +65,7 @@ class DocumentProcessor:
             human_review_required=review,
         )
 
+        # Step 4: apply the matching redaction strategy for the document format.
         if document_type is DocumentType.text:
             redacted = redact_text(text, merged, token).encode("utf-8")
         elif document_type is DocumentType.pdf:
@@ -72,8 +80,9 @@ class DocumentProcessor:
         else:
             raise ValueError(f"Unsupported document type: {document_type}")
 
+        # Step 5: package both the structured metadata and the redacted bytes.
         result = ProcessingResultMetadata(
-            job_id=job_id,
+            request_id=request_id,
             document_type=document_type,
             status=status,
             entities=merged,
