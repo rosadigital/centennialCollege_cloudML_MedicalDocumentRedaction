@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Document Redaction Tool</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Medical Document Redaction Tool</h1>
+        <p>Upload a medical or legal document and generate a redacted version.</p>
+      </div>
+      <div class="status-badge" id="apiStatus">API: Not checked</div>
+    </header>
+
+    <main class="main-grid">
+      <section class="panel form-panel">
+        <h2>Upload Document</h2>
+
+        <form id="redactionForm">
+          <div class="form-group">
+            <label for="fileInput">Document File</label>
+            <input type="file" id="fileInput" name="file" accept=".png,.jpg,.jpeg,.pdf,.txt" required />
+          </div>
+
+          <div class="form-group">
+            <label for="documentType">Document Format</label>
+            <select id="documentType" name="document_type" required>
+              <option value="">Select document type</option>
+              <option value="pdf">PDF</option>
+              <option value="image">Image</option>
+              <option value="text">Text</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="submitterId">Submitter ID (optional)</label>
+            <input type="text" id="submitterId" name="submitter_id" placeholder="e.g. student01" />
+          </div>
+
+          <div class="form-group">
+            <label>Selected File Preview</label>
+            <div class="preview-card" id="originalPreview">
+              <p class="muted">No file selected yet.</p>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="secondary-btn" id="checkHealthBtn">Check API</button>
+            <button type="submit" class="primary-btn" id="processBtn">Process Document</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel result-panel">
+        <h2>Redaction Result</h2>
+
+        <div class="message-box" id="messageBox">
+          Ready.
+        </div>
+
+        <div class="result-section">
+          <h3>Processing Summary</h3>
+          <pre id="resultJson" class="json-box">No result yet.</pre>
+        </div>
+        
+        <div class="result-section">
+          <h3>Detected Sensitive Information</h3>
+          <div id="piiList"></div>
+        </div>
+
+        <div class="result-section">
+          <h3>Redacted Output Preview</h3>
+          <div class="preview-card" id="redactedPreview">
+            <p class="muted">Processed result will appear here.</p>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="secondary-btn" id="downloadBtn" disabled>Download Redacted File</button>
+          <button type="button" class="secondary-btn" id="clearBtn">Clear</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
