@@ -27,6 +27,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     
+    @app.get("/")
+    def root():
+        return {"message": "Medical Records Redaction API is running"}
+        
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
