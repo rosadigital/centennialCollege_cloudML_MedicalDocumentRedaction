@@ -216,3 +216,29 @@ curl -sS -X POST "https://<distribution>.cloudfront.net/api/v1/process/sync" \
 ```
 
 An empty multipart `file` part will not reproduce a real upload.
+
+### 9.8 `GET /health` works but `POST /api/...` returns 403 “Request blocked”
+
+This almost always means **`POST` is not reaching the EC2 origin**.
+
+**Most common mistake:** you created a CloudFront behavior only for **`/health`** (or a narrow path) pointing to EC2, but **`/api/*` still uses the default `*` behavior** that points to **S3**. S3 static hosting / bucket origins **do not accept `POST`** the way your API does, so CloudFront returns **403** for the upload.
+
+**Fix in CloudFront → Behaviors:**
+
+1. Add (or edit) a behavior with **Path pattern** ` /api/* ` (include the API prefix you use, e.g. `/api/*`).
+2. Set **Origin** to the **same custom origin** as `/health` (your EC2: HTTP port 8000).
+3. **Order of behaviors:** CloudFront uses the **first** behavior whose path pattern matches. Put **`/api/*` above** the default **`Default (*)`** row in the list so requests to `/api/v1/...` hit EC2 and not S3.
+4. **Allowed HTTP methods:** include **`POST`** and **`OPTIONS`** (and usually `GET`, `HEAD`, `PUT`, `PATCH`, `DELETE` as needed).
+5. **Cache policy:** use **CachingDisabled** (or equivalent) for this API behavior.
+
+Then **create an invalidation** for `/*` or wait a minute and retry.
+
+**Sanity check:** from your laptop, with a real PNG:
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" -X POST "https://<distribution>.cloudfront.net/api/v1/process/sync" \
+  -F "file=@/path/to/image.png" \
+  -F "document_type=image"
+```
+
+You should see **`200`** (or `4xx`/`5xx` JSON from FastAPI), not **`403`** HTML from CloudFront.
