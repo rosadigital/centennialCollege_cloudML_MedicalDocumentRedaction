@@ -1,4 +1,7 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE =
+  window.APP_CONFIG?.API_BASE ??
+  window.location.origin.replace(/:\d+$/, ":8000") ??
+  "http://127.0.0.1:8000";
 
 const form = document.getElementById("redactionForm");
 const fileInput = document.getElementById("fileInput");

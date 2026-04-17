@@ -1,0 +1,72 @@
+name: Frontend Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - feature-ui
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+  FRONTEND_API_BASE_URL: ${{ vars.FRONTEND_API_BASE_URL }}
+
+concurrency:
+  group: frontend-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate deploy configuration
+        run: |
+          set -eu
+          test -n "$S3_BUCKET_NAME" || { echo "Missing GitHub variable S3_BUCKET_NAME"; exit 1; }
+          test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "Missing GitHub variable CLOUDFRONT_DISTRIBUTION_ID"; exit 1; }
+          test -n "${{ vars.AWS_DEPLOY_ROLE_ARN }}" || { echo "Missing GitHub variable AWS_DEPLOY_ROLE_ARN"; exit 1; }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+
+      - name: Prepare frontend bundle
+        run: |
+          set -eu
+          rm -rf dist
+          mkdir -p dist
+          cp -R frontend/. dist/
+          cat > dist/config.js <<EOF
+          window.APP_CONFIG = {
+            API_BASE: "${FRONTEND_API_BASE_URL}",
+          };
+          EOF
+
+      - name: Sync frontend files to S3
+        run: |
+          set -eu
+          aws s3 sync dist/ "s3://${S3_BUCKET_NAME}" --delete
+          aws s3 cp dist/index.html "s3://${S3_BUCKET_NAME}/index.html" --cache-control "no-store"
+          aws s3 cp dist/config.js "s3://${S3_BUCKET_NAME}/config.js" --cache-control "no-store"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          set -eu
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*"

@@ -1,0 +1,149 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - feature-ui
+    paths:
+      - "server/**"
+      - "deploy/docker-compose.yml"
+      - ".github/workflows/backend-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  EC2_SSH_HOST: ${{ vars.EC2_SSH_HOST }}
+  EC2_SSH_USER: ${{ vars.EC2_SSH_USER }}
+  SERVER_PORT: ${{ vars.SERVER_PORT }}
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        working-directory: server
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint backend
+        working-directory: server
+        run: ruff check .
+
+      - name: Run backend tests
+        working-directory: server
+        run: pytest
+
+      - name: Validate deploy configuration
+        run: |
+          set -eu
+          test -n "$ECR_REPOSITORY" || { echo "Missing GitHub variable ECR_REPOSITORY"; exit 1; }
+          test -n "${{ vars.AWS_DEPLOY_ROLE_ARN }}" || { echo "Missing GitHub variable AWS_DEPLOY_ROLE_ARN"; exit 1; }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: meta
+        run: echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+        run: |
+          set -eu
+          docker build \
+            -f server/Dockerfile \
+            -t "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+            server
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+  deploy-to-ec2:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate EC2 deploy configuration
+        run: |
+          set -eu
+          test -n "$EC2_SSH_HOST" || { echo "Missing GitHub variable EC2_SSH_HOST"; exit 1; }
+          test -n "$EC2_SSH_USER" || { echo "Missing GitHub variable EC2_SSH_USER"; exit 1; }
+          test -n "${{ secrets.EC2_SSH_PRIVATE_KEY }}" || { echo "Missing GitHub secret EC2_SSH_PRIVATE_KEY"; exit 1; }
+
+      - name: Copy docker compose file to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_SSH_HOST }}
+          username: ${{ env.EC2_SSH_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: "deploy/docker-compose.yml"
+          target: "/home/${{ env.EC2_SSH_USER }}/medical-redaction"
+          strip_components: 1
+
+      - name: Pull and restart backend container
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          SERVER_PORT: ${{ env.SERVER_PORT }}
+        with:
+          host: ${{ env.EC2_SSH_HOST }}
+          username: ${{ env.EC2_SSH_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          envs: AWS_REGION,ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,SERVER_PORT
+          script: |
+            set -eu
+            mkdir -p ~/medical-redaction
+            cd ~/medical-redaction
+
+            if [ ! -f backend.env ]; then
+              echo "Missing ~/medical-redaction/backend.env"
+              exit 1
+            fi
+
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+            export ECR_REGISTRY
+            export ECR_REPOSITORY
+            export IMAGE_TAG
+            export SERVER_PORT="${SERVER_PORT:-8000}"
+
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+            docker compose ps

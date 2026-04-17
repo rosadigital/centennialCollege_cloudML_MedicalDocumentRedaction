@@ -209,3 +209,5 @@ __marimo__/
 # folder for brainstorming
 brainstorming/*
 brainstorming/**
+
+.DS_Store

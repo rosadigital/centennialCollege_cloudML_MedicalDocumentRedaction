@@ -23,9 +23,9 @@ class SyncProcessResponse(BaseModel):
 async def process_sync(
     svc: RedactionServiceDep,
     settings: Annotated[Settings, Depends(get_settings)],
-    file: UploadFile = File(...),
-    document_type: str = Form(...),
-    submitter_id: str = Form(default=""),
+    file: Annotated[UploadFile, File(...)],
+    document_type: Annotated[str, Form(...)],
+    submitter_id: Annotated[str, Form()] = "",
 ) -> SyncProcessResponse:
     """Process a small document in one request and return the redacted bytes."""
     raw = await file.read()
