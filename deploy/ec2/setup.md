@@ -14,37 +14,47 @@ Create these resources in `us-east-1`:
 3. An ECR repository for the backend image.
 4. One EC2 instance for the FastAPI container.
 
-## 2. GitHub configuration
+## 2. GitHub configuration (MVP with access keys)
 
-Create these GitHub **Variables**:
+The workflows authenticate to AWS using **long-lived IAM user access keys** stored as GitHub **Secrets** (no OIDC role).
 
-- `AWS_DEPLOY_ROLE_ARN`: IAM role assumed by GitHub Actions through OIDC.
+### 2.1 GitHub Variables (repository or environment)
+
 - `S3_BUCKET_NAME`: frontend bucket name.
 - `CLOUDFRONT_DISTRIBUTION_ID`: CloudFront distribution ID.
-- `FRONTEND_API_BASE_URL`: optional public API base URL. Leave it empty if CloudFront routes `/api/*` and `/health` to the EC2 origin on the same distribution.
-- `ECR_REPOSITORY`: ECR repository name.
+- `FRONTEND_API_BASE_URL`: optional public API base URL. Leave it **empty** if CloudFront routes `/api/*` and `/health` to the EC2 origin on the same distribution (same-origin HTTPS).
+- `ECR_REPOSITORY`: ECR repository name (only the repository name, not the full URI).
 - `EC2_SSH_HOST`: public DNS or IP of the EC2 instance.
-- `EC2_SSH_USER`: SSH username used by the EC2 instance, for example `ec2-user` or `ubuntu`.
-- `SERVER_PORT`: optional host port for the backend container, usually `8000`.
+- `EC2_SSH_USER`: SSH username, for example `ec2-user` (Amazon Linux) or `ubuntu` (Ubuntu).
+- `SERVER_PORT`: optional host port mapped on the EC2 host, usually `8000`.
 
-Create this GitHub **Secret**:
+You do **not** need `AWS_DEPLOY_ROLE_ARN` for this MVP.
 
-- `EC2_SSH_PRIVATE_KEY`: private key used by the workflow to connect to EC2.
+### 2.2 GitHub Secrets
 
-## 3. OIDC IAM role for GitHub Actions
+Create these in **Settings → Secrets and variables → Actions**:
 
-The role referenced by `AWS_DEPLOY_ROLE_ARN` should trust GitHub's OIDC provider and allow:
+| Secret | Purpose |
+| --- | --- |
+| `AWS_ACCESS_KEY_ID` | Access key ID of an IAM user used only for CI deploy. |
+| `AWS_SECRET_ACCESS_KEY` | Secret access key for that user. |
+| `EC2_SSH_PRIVATE_KEY` | Full PEM private key text used to SSH into the EC2 instance (the same material as your `.pem` file, including `BEGIN` / `END` lines). |
 
-- `s3:ListBucket`, `s3:PutObject`, `s3:DeleteObject`
-- `cloudfront:CreateInvalidation`
-- `ecr:GetAuthorizationToken`
-- `ecr:BatchCheckLayerAvailability`
-- `ecr:CompleteLayerUpload`
-- `ecr:InitiateLayerUpload`
-- `ecr:PutImage`
-- `ecr:UploadLayerPart`
+Treat these like passwords. Rotate the access keys if they leak.
 
-You can scope the permissions to the specific bucket, distribution, and ECR repository.
+## 3. IAM user for GitHub Actions (access keys)
+
+1. In **IAM → Users → Create user**, create a user intended only for this pipeline (no console password required).
+2. **Create access key** for the user (use case: “Application running outside AWS” or “CLI” depending on the console wording).
+3. Attach an **inline policy** or a **customer managed policy** with the minimum actions the workflows need.
+
+Required API actions (scope ARNs to your bucket, distribution, and ECR repository when possible):
+
+- **S3 (frontend sync):** `s3:ListBucket`, `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` on the frontend bucket and objects.
+- **CloudFront:** `cloudfront:CreateInvalidation` on your distribution.
+- **ECR (image push):** `ecr:GetAuthorizationToken` (resource `*` is normal for this API), plus `ecr:BatchCheckLayerAvailability`, `ecr:CompleteLayerUpload`, `ecr:InitiateLayerUpload`, `ecr:PutImage`, `ecr:UploadLayerPart`, and often `ecr:BatchGetImage` / `ecr:GetDownloadUrlForLayer` on your repository ARN.
+
+**Security note:** access keys never expire by default. For class projects or MVPs this is acceptable if the user has **only** these permissions and you rotate keys after the course.
 
 ## 4. EC2 bootstrap
 
@@ -116,5 +126,5 @@ docker compose up -d
 1. Confirm the EC2 security group allows inbound traffic on `8000` from the internet or from a reverse proxy.
 2. Confirm the S3 bucket and CloudFront distribution are created.
 3. Confirm the ECR repository exists.
-4. Confirm GitHub variables and secret are set.
+4. Confirm GitHub **Variables** and **Secrets** (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EC2_SSH_PRIVATE_KEY`) are set.
 5. Push a change to `main` or `feature-ui`, or trigger the workflows manually.

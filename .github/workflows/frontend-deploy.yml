@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   AWS_REGION: us-east-1
@@ -37,13 +36,15 @@ jobs:
           set -eu
           test -n "$S3_BUCKET_NAME" || { echo "Missing GitHub variable S3_BUCKET_NAME"; exit 1; }
           test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "Missing GitHub variable CLOUDFRONT_DISTRIBUTION_ID"; exit 1; }
-          test -n "${{ vars.AWS_DEPLOY_ROLE_ARN }}" || { echo "Missing GitHub variable AWS_DEPLOY_ROLE_ARN"; exit 1; }
+          test -n "${{ secrets.AWS_ACCESS_KEY_ID }}" || { echo "Missing GitHub secret AWS_ACCESS_KEY_ID"; exit 1; }
+          test -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" || { echo "Missing GitHub secret AWS_SECRET_ACCESS_KEY"; exit 1; }
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Prepare frontend bundle
         run: |
@@ -51,11 +52,15 @@ jobs:
           rm -rf dist
           mkdir -p dist
           cp -R frontend/. dist/
-          cat > dist/config.js <<EOF
+          if [ -n "${FRONTEND_API_BASE_URL}" ]; then
+            cat > dist/config.js <<EOF
           window.APP_CONFIG = {
             API_BASE: "${FRONTEND_API_BASE_URL}",
           };
           EOF
+          else
+            printf '%s\n' 'window.APP_CONFIG = {};' > dist/config.js
+          fi
 
       - name: Sync frontend files to S3
         run: |
