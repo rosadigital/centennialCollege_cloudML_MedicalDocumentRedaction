@@ -153,3 +153,66 @@ Checklist:
 After fixing the security group, **re-run** the failed workflow job (no code change required).
 
 **More secure alternatives** (for later): self-hosted GitHub runner in the VPC, AWS SSM instead of SSH, or deploy only to ECR and pull on the instance via cron/SSM without opening SSH to the internet.
+
+## 9. Troubleshooting: CloudFront `504` on `/health` and `403` on `POST /api/...`
+
+When the browser (or `curl`) calls `https://<distribution>.cloudfront.net/health` or `/api/v1/process/sync`, CloudFront forwards the request to your **API origin** (EC2). Errors often come from **origin connectivity**, **wrong port/protocol**, or **behavior settings**.
+
+### 9.1 Isolate EC2 vs CloudFront
+
+On the EC2 instance (SSH) or from your laptop:
+
+```bash
+curl -sS "http://<EC2_PUBLIC_IP>:8000/health"
+```
+
+- If this **fails**: fix Docker (`docker compose ps`), security group **port 8000**, or the app first.
+- If this **works** but CloudFront **does not**: the problem is almost entirely **CloudFront origin + behavior** configuration.
+
+### 9.2 Security group for CloudFront → EC2 (fixes many `504`s)
+
+CloudFront edge locations connect to your public origin over the internet. The EC2 security group must allow **inbound TCP on the origin port** (usually **8000** if the container maps `8000:8000`).
+
+- Add **inbound**: **Custom TCP**, port **8000**, source **`0.0.0.0/0`** (MVP), or use the AWS **managed prefix list** for CloudFront origin-facing traffic if you want a tighter rule later.
+
+Without this, CloudFront often returns **504 Gateway Timeout** (cannot complete TCP / TLS to the origin in time).
+
+### 9.3 Origin settings in CloudFront (fixes more `504`s)
+
+For a **custom origin** pointing at EC2 running Uvicorn on port **8000** with **HTTP** (no TLS on the instance):
+
+- **Origin domain**: public DNS of the instance or its Elastic IP (not a private IP).
+- **Origin protocol**: **HTTP only** (not HTTPS), unless you terminate TLS on the instance or use a reverse proxy on 443.
+- **HTTP port**: **8000** (must match `SERVER_PORT` / `docker-compose` mapping).
+- **Origin path**: leave **empty** unless the API is mounted under a path prefix.
+
+If CloudFront is set to **HTTPS on port 443** toward the instance but nothing listens there with a valid certificate, you will see **504** or TLS errors.
+
+### 9.4 Allowed HTTP methods (common cause of `403` on `POST`)
+
+For the cache behavior that matches **`/api/*`** (and usually **`/health`** if it shares the same origin):
+
+- Set **Allowed HTTP methods** to include **`POST`** (and typically **`OPTIONS`** for CORS preflight).  
+  If the behavior only allows **GET** and **HEAD**, CloudFront can respond with **403** / “Request blocked” for `POST /api/v1/process/sync`.
+
+Use a **cache policy** appropriate for APIs, for example **CachingDisabled** (or **Managed-CachingDisabled**), so `POST` is not treated like static asset caching.
+
+### 9.5 Behavior precedence
+
+Ensure behaviors for **`/api/*`** and **`/health`** (or a combined pattern) are **ordered above** the default `*` behavior that points to **S3**. Otherwise `/health` may hit S3 and fail or behave oddly.
+
+### 9.6 WAF
+
+If you attached **AWS WAF** to the distribution, a rule may block `POST` bodies or large uploads. Temporarily set WAF to **count-only** or detach it to test.
+
+### 9.7 Testing `POST` with curl
+
+Your browser sends multipart data. With curl, use a real file:
+
+```bash
+curl -sS -X POST "https://<distribution>.cloudfront.net/api/v1/process/sync" \
+  -F "file=@/path/to/image.png" \
+  -F "document_type=image"
+```
+
+An empty multipart `file` part will not reproduce a real upload.
