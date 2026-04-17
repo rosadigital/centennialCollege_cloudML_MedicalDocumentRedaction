@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,9 +11,11 @@ class Settings(BaseSettings):
 
     app_name: str = "Medical Records Redaction API"
     debug: bool = False
-    cors_origins: list[str] = Field(
-        default_factory=lambda: ["http://127.0.0.1:5500", "http://localhost:5500"],
-        description="Allowed CORS origins for the frontend",
+    # Comma-separated string so Docker/env_file works; pydantic-settings would
+    # otherwise try JSON decoding for list[str] before validators run.
+    cors_origins: str = Field(
+        default="http://127.0.0.1:5500,http://localhost:5500",
+        description="Comma-separated CORS origins for the frontend",
     )
 
     aws_region: str = Field(default="us-east-1", description="AWS region for boto3 clients")
@@ -33,12 +35,10 @@ class Settings(BaseSettings):
         description="If false, skip Comprehend calls (local dev / tests)",
     )
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: object) -> object:
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        items = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return items or ["http://127.0.0.1:5500", "http://localhost:5500"]
 
 
 def get_settings() -> Settings:
