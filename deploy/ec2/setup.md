@@ -128,3 +128,28 @@ docker compose up -d
 3. Confirm the ECR repository exists.
 4. Confirm GitHub **Variables** and **Secrets** (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EC2_SSH_PRIVATE_KEY`) are set.
 5. Push a change to `main` or `feature-ui`, or trigger the workflows manually.
+6. For the **deploy-to-ec2** job, the EC2 security group must allow **inbound TCP 22 (SSH)** from the internet (see section 8).
+
+## 8. Troubleshooting: `dial tcp ...:22: i/o timeout` on deploy-to-ec2
+
+GitHub Actions runs on **shared runners** with **changing public IPs**. The `appleboy/scp-action` step needs to open **SSH (port 22)** from the runner to your instance.
+
+Checklist:
+
+1. **Public IPv4**  
+   In the EC2 console, confirm the instance has **Auto-assign public IP** enabled (or attach an **Elastic IP**). If the instance is **only** in a private subnet with no bastion, GitHub cannot SSH in.
+
+2. **Security group inbound rules**  
+   Add an inbound rule: **Type SSH**, **Port 22**, **Source**  
+   - For a class / MVP: `0.0.0.0/0` (anywhere) is the simplest way to confirm it works; tighten later.  
+   - Restricting to “My IP” **does not** include GitHub’s runners, so the workflow will time out.
+
+3. **Network ACL**  
+   If you use a custom NACL on the subnet, ensure it allows ephemeral return traffic and TCP 22 inbound.
+
+4. **Host variable**  
+   `EC2_SSH_HOST` should be the **public** DNS name (e.g. `ec2-...amazonaws.com`) or the **Elastic IP**, not the private IP unless you use a self-hosted runner inside the VPC.
+
+After fixing the security group, **re-run** the failed workflow job (no code change required).
+
+**More secure alternatives** (for later): self-hosted GitHub runner in the VPC, AWS SSM instead of SSH, or deploy only to ECR and pull on the instance via cron/SSM without opening SSH to the internet.
